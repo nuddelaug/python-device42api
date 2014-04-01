@@ -11,7 +11,9 @@ class Optional(object): pass
 class Device42APIObjectException(Exception):    pass
 
 class Device42APIObject(object):
-    """basic Object representing a device42 API object,
+    """.. _Device42APIObject:
+    
+    basic Object representing a device42 API object,
     inherit from this one and implement at least:
     
     * save()
@@ -41,15 +43,18 @@ class Device42APIObject(object):
         raise Device42APIObjectException(u'need to implement load')
 
 class CustomField(Device42APIObject):
-    """create CustomField
+    """.. _CustomField:
     
+    create CustomField
     postponed due to licensing issues
     """
     def __init__(self, json=None, parent=None, api=None):
         super(CustomField, self).__init__(json, parent, api)
     
 class Building(Device42APIObject):
-    """create Building object
+    """.. _Building:
+    
+    create Building object
     
     >>> api = device42api.Device42API(host='127.0.0.1', username='admin', password='changeme')
     >>> b = device42api.Building(api=api)
@@ -93,7 +98,9 @@ class Building(Device42APIObject):
         return self.json
 
 class Room(Device42APIObject):
-    """create Room object
+    """.. _Room:
+    
+    create Room object
     
     >>> api = device42api.Device42API(host='127.0.0.1', username='admin', password='changeme')
     >>> r = device42api.Room(api=api)
@@ -183,7 +190,9 @@ class Room(Device42APIObject):
         return self.json
 
 class Rack(Device42APIObject):
-    """create Rack object
+    """.. _Rack:
+    
+    create Rack object
     
     >>> api = device42api.Device42API(host='127.0.0.1', username='admin', password='changeme')
     >>> r = device42api.Rack(api=api)
@@ -312,7 +321,10 @@ class Rack(Device42APIObject):
             self._json = json
 
 class Asset(Device42APIObject):
-    """create Rack object
+    """.. _Asset:
+    
+    create Rack object
+    postponed due to licensing issues
     
     >>> api = device42api.Device42API(host='127.0.0.1', username='admin', password='changeme')
     >>> a = device42api.Asset(api=api)
@@ -387,7 +399,9 @@ class Asset(Device42APIObject):
         return self.json
 
 class Device(Device42APIObject):
-    """create Device object
+    """.. _Device:
+    
+    create Device object
     
     >>> api = device42api.Device42API(host='127.0.0.1', username='admin', password='changeme')
     >>> d = device42api.Device(api=api)
@@ -508,7 +522,9 @@ class Device(Device42APIObject):
         return u'%s' % self.name
 
 class Hardware(Device42APIObject):
-    """create Hardware object
+    """.. _Hardware:
+    
+    create Hardware object
     
     >>> h = device42api.Hardware(api=api)
     >>> h.name = 'TestHardware'
@@ -559,7 +575,10 @@ class Hardware(Device42APIObject):
         return self.json
 
 class PDU(Device42APIObject):
-    """create Rack object
+    """.. _PDU:
+    
+    create Rack object
+    postponed due to licensing issues
     
     >>> api = device42api.Device42API(host='127.0.0.1', username='admin', password='changeme')
     >>> p = device42api.PDU(api=api)
@@ -613,8 +632,9 @@ class PDU(Device42APIObject):
         return self.json
 
 class PatchPanel(Device42APIObject):
-    """create PatchPanel
+    """.. _PatchPanel:
     
+    create PatchPanel
     postponed due to licensing issues
     """
     def __init__(self, json=None, parent=None, api=None):
@@ -637,8 +657,9 @@ class PatchPanel(Device42APIObject):
         self.cable_type             = Optional()
 
 class IPAM_macaddress(Device42APIObject):
-    """create IPAM macaddress
+    """.. _IPAM_macaddress:
     
+    create IPAM macaddress
     these objects are returned if you fetch devices with configured macAddresses, manual adding a mac Address to a device
     as follows ...
     
@@ -683,8 +704,9 @@ class IPAM_macaddress(Device42APIObject):
         return self.json
 
 class IPAM_ipaddress(Device42APIObject):
-    """create IPAM macaddress
+    """.. _IPAM_ipaddress:
     
+    create IPAM macaddress
     these objects are returned if you fetch devices with configured macAddresses, manual adding a mac Address to a device
     as follows ...
     
@@ -739,8 +761,9 @@ class IPAM_ipaddress(Device42APIObject):
         return self.json
 
 class IPAM_subnet(Device42APIObject):
-    """create IPAM subnet
+    """.. _IPAM_subnet:
     
+    create IPAM subnet
     postponed due to licensing issues
     """
     def __init__(self, json=None, parent=None, api=None):
@@ -782,8 +805,9 @@ class IPAM_subnet(Device42APIObject):
         return self.json
 
 class IPAM_vlan(Device42APIObject):
-    """create IPAM subnet
+    """.. _IPAM_vlan:
     
+    create IPAM subnet
     postponed due to licensing issues
     """
     def __init__(self, json=None, parent=None, api=None):
@@ -817,8 +841,9 @@ class IPAM_vlan(Device42APIObject):
         return self.json
 
 class IPAM_switchport(Device42APIObject):
-    """create IPAM subnet
+    """.. _IPAM_switchport:
     
+    create IPAM subnet
     postponed due to licensing issues
     """
     def __init__(self, json=None, parent=None, api=None):
@@ -858,8 +883,9 @@ class IPAM_switchport(Device42APIObject):
         return self.json
 
 class IPAM_switch(Device42APIObject):
-    """create IPAM subnet
+    """.. _IPAM_switch:
     
+    create IPAM subnet
     postponed due to licensing issues
     """
     def __init__(self, json=None, parent=None, api=None):
@@ -893,7 +919,9 @@ class IPAM_switch(Device42APIObject):
         return self.json
 
 class Device42API(object):
-    """API abstraction class
+    """.. _Device42API:
+    
+    API abstraction class
     this object deals with the https request to the device42 service
     
     >>> api = device42api.Device42API(host='192.168.122.200', username='admin', password='changeme')

@@ -1,6 +1,11 @@
 #!/usr/bin/env python
-
-from distutils.core import setup
+# -*- coding: utf-8 -*- 
+try:
+    from setuptools import setup, find_packages
+except ImportError:
+    import ez_setup
+    ez_setup.use_setuptools()
+    from setuptools import setup, find_packages
 
 setup(name='device42api',
       version='1.0',
@@ -8,7 +13,7 @@ setup(name='device42api',
       author='Michael Lang',
       author_email='Michael.Lang@ctbto.org',
       url='https://github.com/python-device42api/',
-      packages=['distutils', 'distutils.command'],
+      packages=find_packages(),
       license='GPLv2',
       classifiers=[
         'Development Status :: 5 - Production/Stable',
@@ -23,5 +28,5 @@ setup(name='device42api',
         'Topic :: Text Processing',
         'Topic :: Utilities',
         ],
-      install_requires=['python-httplib2>=0.8', 'python-simplejson>=1.4.6'],
+      install_requires=['python-httplib2 >= 0.8', 'python-simplejson >= 1.4.6'],
       )

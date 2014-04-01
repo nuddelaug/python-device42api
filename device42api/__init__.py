@@ -11,7 +11,14 @@ class Optional(object): pass
 class Device42APIObjectException(Exception):    pass
 
 class Device42APIObject(object):
-    """basic Object representing a device42 API object """
+    """basic Object representing a device42 API object,
+    inherit from this one and implement at least:
+    
+    * save()
+    * load()
+    * get_json()
+    
+    """
     def __init__(self, json=None, parent=None, api=None):
         self.api            = api
         self._json          = json
@@ -34,6 +41,10 @@ class Device42APIObject(object):
         raise Device42APIObjectException(u'need to implement load')
 
 class CustomField(Device42APIObject):
+    """create CustomField
+    
+    postponed due to licensing issues
+    """
     def __init__(self, json=None, parent=None, api=None):
         super(CustomField, self).__init__(json, parent, api)
     
@@ -301,6 +312,22 @@ class Rack(Device42APIObject):
             self._json = json
 
 class Asset(Device42APIObject):
+    """create Rack object
+    
+    >>> api = device42api.Device42API(host='127.0.0.1', username='admin', password='changeme')
+    >>> a = device42api.Asset(api=api)
+    >>> a.type = 'AC' # AC,Breaker Panel,Cable Modem,DMARC,Fabric Extender,Fax Machine,Filler Panel,Monitor,Patch Panel
+                      # Patch Panel Module,Projector,Scanner,Shredder,Software,Speaker Phone,TAP Module
+    >>> a.serial_no = '1234567890'
+    >>> a.vendor = 'Test'
+    >>> a.building = 'TestBuilding'
+    >>> a.room = 'Test Room'
+    >>> a.rack_id = 80
+    >>> a.start_at = 1
+    >>> a.save()
+    {'msg': 'License expired. Please renew license to enable this module.', 'code': 1}
+
+    """
     def __init__(self, json=None, parent=None, api=None):
         self.type           = Required()
         self.name           = Optional()
@@ -323,15 +350,41 @@ class Asset(Device42APIObject):
         self.size           = Optional()
         self.orientation    = Optional()
         self.depth          = Optional()
-        self.patch_paneld_model_id  = Optional()
+        self.patch_panel_model_id   = Optional()
         self.numbering_start_from   = Optional()
         self.asset_contracts= []
         self.asset_purchases= []
-        super(Asset, self).__init__(json['asset'], parent, api)
-        self._json          = json
+        if json != None and json.has_key('asset'):
+            super(Asset, self).__init__(json['asset'], parent, api)
+        else:
+            super(Asset, self).__init__(json, parent, api)
     def save(self):
         if self.api != None:
-            return self.api.__post_api__('assets/', self.get_json())
+            return self.api.__post_api__('assets/', body=self.get_json())
+    def get_json(self):
+        if isinstance(self.type, Required):
+            raise Device42APIObjectException(u'required Attribute "type" not set')
+        self.json['type'] = str(self.type)
+        for k in ('name', 'service_level', 'serial_no', 'asset_no', 'customer_id', 'location',
+                  'notes', 'building', 'vendor', 'imagefile_id', 'contract_id', 'rack_id',
+                  'building', 'room', 'rack', 'row', 'start_at', 'size', 'orientation',
+                  'depth', 'patch_panel_model_id', 'numbering_start_from'):
+            v = getattr(self, k)
+            if isinstance(v, Optional):  continue
+            if self._json.has_key(k) and self._json[k] != v:
+                self.json[k] = str(v)
+            elif not self._json.has_key(k):
+                self.json[k] = str(v)
+        for k in self._json.keys():
+            try:
+                v = getattr(self, k)
+                if isinstance(v, Optional):  continue
+                if self._json[k] != v:
+                    self.json[k] = str(v)
+                else:
+                    self.json[k] = str(v)
+            except AttributeError:  continue
+        return self.json
 
 class Device(Device42APIObject):
     """create Device object
@@ -506,6 +559,21 @@ class Hardware(Device42APIObject):
         return self.json
 
 class PDU(Device42APIObject):
+    """create Rack object
+    
+    >>> api = device42api.Device42API(host='127.0.0.1', username='admin', password='changeme')
+    >>> p = device42api.PDU(api=api)
+    >>> p.name = 'MyFirst PDU'
+    >>> p.name = 'Test PDU'
+    >>> p.pdu_id = 1
+    >>> p.rack_id = 80
+    >>> p.device = 156
+    >>> p.notes = 'Test PDU Test Device'
+    >>> p.start_at = 1
+    >>> p.save()
+    {'msg': 'License expired. Please renew license to enable this module.', 'code': 1}
+
+    """
     def __init__(self, json=None, parent=None, api=None):
         self.name           = Required()
         self.pdu_id         = Optional()
@@ -515,14 +583,40 @@ class PDU(Device42APIObject):
         self.where          = Optional() # values: left, right, above, below or mounted.
         self.start_at       = Optional()
         self.orientation    = Optional()
-        super(PDU, self).__init__(json, parent, api)
+        if json != None and json.has_key('pdu'):
+            super(PDU, self).__init__(json['pdu'], parent, api)
+        else:
+            super(PDU, self).__init__(json, parent, api)
     def save(self):
         if self.api != None:
             if self.rack_id != Optional():
-                return self.api.__post_api__('pdus/rack/', self.get_json())
-            return self.api.__post_api__('pdus/', self.get_json())
+                return self.api.__post_api__('pdus/rack/', body=self.get_json())
+            return self.api.__post_api__('pdus/', body=self.get_json())
+    def get_json(self):
+        if isinstance(self.name, Required):
+            raise Device42APIObjectException(u'required Attribute "name" not set')
+        self.json['name'] = str(self.name)
+        for k in ('pdu_id', 'rack_id', 'device', 'notes', 'where', 'start_at', 'orientation'):
+            v = getattr(self, k)
+            if isinstance(v, Optional):  continue
+            if self._json.has_key(k) and self._json[k] != v:
+                self.json[k] = str(v)
+            elif not self._json.has_key(k):
+                self.json[k] = str(v)
+        for k in self._json.keys():
+            try:
+                v = getattr(self, k)
+                if isinstance(v, Optional):  continue
+                if self._json[k] != v:
+                    self.json[k] = str(v)
+            except AttributeError:  continue
+        return self.json
 
 class PatchPanel(Device42APIObject):
+    """create PatchPanel
+    
+    postponed due to licensing issues
+    """
     def __init__(self, json=None, parent=None, api=None):
         self.patch_panel_id         = Required()
         self.number                 = Required()
@@ -543,6 +637,22 @@ class PatchPanel(Device42APIObject):
         self.cable_type             = Optional()
 
 class IPAM_macaddress(Device42APIObject):
+    """create IPAM macaddress
+    
+    these objects are returned if you fetch devices with configured macAddresses, manual adding a mac Address to a device
+    as follows ...
+    
+    >>> api = device42api.Device42API(host='127.0.0.1', username='admin', password='changeme')
+    >>> i = device42api.IPAM_macaddress(api=api)
+    >>> i.macaddress = '00:11:22:33:44:55'
+    >>> i.port_name = 'eth0'
+    >>> i.device = 'Test Device'
+    >>> i.save()
+    {'msg': 'License expired. Please renew license to enable this module.', 'code': 1}
+    >>> i.get_json()
+    {'device': 'Test Device', 'macaddress': '00:11:22:33:44:55', 'port_name': 'eth0'}
+    
+    """
     def __init__(self, json=None, parent=None, api=None):
         super(IPAM_macaddress, self).__init__(json, parent, api)
         self.macaddress         = Required()
@@ -562,6 +672,8 @@ class IPAM_macaddress(Device42APIObject):
             if isinstance(v, Optional):  continue
             if self._json.has_key(k) and self._json[k] != v:
                 self.json[k] = str(v)
+            elif not self._json.has_key(k):
+                self.json[k] = str(v)
         for k in self._json.keys():
             try:
                 v = getattr(self, k)
@@ -571,6 +683,23 @@ class IPAM_macaddress(Device42APIObject):
         return self.json
 
 class IPAM_ipaddress(Device42APIObject):
+    """create IPAM macaddress
+    
+    these objects are returned if you fetch devices with configured macAddresses, manual adding a mac Address to a device
+    as follows ...
+    
+    >>> api = device42api.Device42API(host='127.0.0.1', username='admin', password='changeme')
+    >>> i = device42api.IPAM_ipaddress(api=api)
+    >>> i.ipaddress = '127.0.0.1'
+    >>> i.macaddress = '00:11:22:33:44:55'
+    >>> i.device = 'Test Device'
+    >>> i.type = 'static' # static or dhcp
+    >>> i.save()
+    {'msg': "[u'License has expired, please renew to enable this module']", 'code': 1}
+    >>> i.get_json()
+    {'device': 'Test Device', 'macaddress': '00:11:22:33:44:55', 'ipaddress': '127.0.0.1', 'type': 'static'}
+    
+    """
     def __init__(self, json=None, parent=None, api=None):
         super(IPAM_ipaddress, self).__init__(json, parent, api)
         if json != None and self.__dict__.get('ip', False):
@@ -599,6 +728,8 @@ class IPAM_ipaddress(Device42APIObject):
             if isinstance(v, Optional):  continue
             if self._json.has_key(k) and self._json[k] != v:
                 self.json[k] = str(v)
+            elif not self._json.has_key(k):
+                self.json[k] = str(v)
         for k in self._json.keys():
             try:
                 v = getattr(self, k)
@@ -608,6 +739,10 @@ class IPAM_ipaddress(Device42APIObject):
         return self.json
 
 class IPAM_subnet(Device42APIObject):
+    """create IPAM subnet
+    
+    postponed due to licensing issues
+    """
     def __init__(self, json=None, parent=None, api=None):
         super(IPAM_subnet, self).__init__(json, parent, api)
         self.network 	    = Required() 
@@ -636,6 +771,8 @@ class IPAM_subnet(Device42APIObject):
             if isinstance(v, Optional):  continue
             if self._json.has_key(k) and self._json[k] != v:
                 self.json[k] = str(v)
+            elif not self._json.has_key(k):
+                self.json[k] = str(v)
         for k in self._json.keys():
             try:
                 v = getattr(self, k)
@@ -645,6 +782,10 @@ class IPAM_subnet(Device42APIObject):
         return self.json
 
 class IPAM_vlan(Device42APIObject):
+    """create IPAM subnet
+    
+    postponed due to licensing issues
+    """
     def __init__(self, json=None, parent=None, api=None):
         super(IPAM_vlan, self).__init__(json, parent, api)
         self.number         = Required()
@@ -665,6 +806,8 @@ class IPAM_vlan(Device42APIObject):
             if isinstance(v, Optional):  continue
             if self._json.has_key(k) and self._json[k] != v:
                 self.json[k] = str(v)
+            elif not self._json.has_key(k):
+                self.json[k] = str(v)
         for k in self._json.keys():
             try:
                 v = getattr(self, k)
@@ -674,6 +817,10 @@ class IPAM_vlan(Device42APIObject):
         return self.json
 
 class IPAM_switchport(Device42APIObject):
+    """create IPAM subnet
+    
+    postponed due to licensing issues
+    """
     def __init__(self, json=None, parent=None, api=None):
         super(IPAM_switchport, self).__init__(json, parent, api)
         self.port           = Required()
@@ -700,6 +847,8 @@ class IPAM_switchport(Device42APIObject):
             if isinstance(v, Optional):  continue
             if self._json.has_key(k) and self._json[k] != v:
                 self.json[k] = str(v)
+            elif not self._json.has_key(k):
+                self.json[k] = str(v)
         for k in self._json.keys():
             try:
                 v = getattr(self, k)
@@ -709,6 +858,10 @@ class IPAM_switchport(Device42APIObject):
         return self.json
 
 class IPAM_switch(Device42APIObject):
+    """create IPAM subnet
+    
+    postponed due to licensing issues
+    """
     def __init__(self, json=None, parent=None, api=None):
         super(IPAM_switch, self).__init__(json, parent, api)
         self.device         = Required()
@@ -729,6 +882,8 @@ class IPAM_switch(Device42APIObject):
             if isinstance(v, Optional):  continue
             if self._json.has_key(k) and self._json[k] != v:
                 self.json[k] = str(v)
+            elif not self._json.has_key(k):
+                self.json[k] = str(v)
         for k in self._json.keys():
             try:
                 v = getattr(self, k)
@@ -738,6 +893,23 @@ class IPAM_switch(Device42APIObject):
         return self.json
 
 class Device42API(object):
+    """API abstraction class
+    this object deals with the https request to the device42 service
+    
+    >>> api = device42api.Device42API(host='192.168.122.200', username='admin', password='changeme')
+    >>> for r in api.get_racks():
+    ...     print r
+    ...
+    TestRack1
+    TestRack2
+    
+    
+    low level methods:
+    * __get_api__(path='.../')  # everythin after /api/1.0/
+    * __post_api__(path='.../', v='1.0', body=dict())   # v='1.0' or None
+    * __put_api__(path='.../', body=dict()) # currently not used
+    
+    """
     def __init__(self, host=None, port=443, username=None, password=None):
         self.host       = host
         self.port       = int(port)
@@ -778,6 +950,7 @@ class Device42API(object):
         if headers.has_key('set-cookie'):
             self._headers['Cookie'] = headers['set-cookie']
     def get_racks(self):
+        """return all racks from device42"""
         racks = []
         for r in self.__get_api__('racks/')['racks']:
             rc = self.__get_api__('racks/%s/' % r['rack_id'])

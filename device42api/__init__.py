@@ -26,6 +26,7 @@ class Device42APIObject(object):
         self._json          = json
         self.json           = dict()
         self.parent         = parent
+        self._api_path      = None
         self.custom_fields  = []
         if self._json != None:
             for k in self._json.keys():
@@ -69,11 +70,59 @@ class Device42APIObject(object):
 class CustomField(Device42APIObject):
     """.. _CustomField:
     
-    create CustomField postponed
+    create CustomField
+    
+    >>> api = device42api.Device42API(host='127.0.0.1', username='admin', password='changeme')
+    >>> b = device42api.Building(api=api)
+    >>> b.name    = 'Building with CustomFields'
+    >>> cf1 = device42api.CustomField(api=api)
+    >>> cf1.key  = 'created'
+    >>> cf1.type = 'date'
+    >>> cf1.value = '2014-04-02'
+    >>> cf1._api_path = 'building'
+    >>> cf1.name = b.name
+    >>> cf1.save()
+    {'msg': ['custom key pair values added or updated', 1, 'Building with CustomFields'], 'code': 0}
     
     """
     def __init__(self, json=None, parent=None, api=None):
+        self.name       = Required()
+        self.key        = Required()
+        self.type       = Optional() # default = Text, can be number, date fmt="yyyy-mm-dd"
+        self.value      = Optional()
+        self.value2     = Optional()
+        self.notes      = Optional()
         super(CustomField, self).__init__(json, parent, api)
+    def save(self):
+        if self.api != None:
+            rsp = self.api.__put_api__('custom_fields/%s/' % self._api_path, body=self.get_json())
+            if isinstance(rsp, dict) and rsp.has_key('code'):
+                if rsp['code'] == 0:
+                    self._id  = rsp['msg'][1]
+            return rsp
+    def get_json(self):
+        for attr in ('name', 'key'):
+            if isinstance(getattr(self, attr), Required):
+                raise Device42APIObjectException(u'required Attribute "%s" not set' % attr)
+        self.__get_json_validator__(('name', 'key', 'type', 'value', 'value2', 'notes'))
+        return self.json
+
+class CustomFieldDevice(CustomField):
+    """.. _CustomFieldDevice:
+    
+    .. hint:: special handling as API path changes for device custom fields
+    
+    """
+    def __init__(self, json=None, parent=None, api=None):
+        super(CustomFieldDevice, self).__init__(json, parent, api)
+        self._api_path  = 'device/custom_field'
+    def save(self):
+        if self.api != None:
+            rsp = self.api.__put_api__(self._api_path, body=self.get_json())
+            if isinstance(rsp, dict) and rsp.has_key('code'):
+                if rsp['code'] == 0:
+                    self._id  = rsp['msg'][1]
+            return rsp
     
 class Building(Device42APIObject):
     """.. _Building:
@@ -96,11 +145,33 @@ class Building(Device42APIObject):
         self.contact_phone  = Optional()
         self.notes          = Optional()
         super(Building, self).__init__(json, parent, api)
+        self._api_path      = 'buildings'
+    def add_customField(self, cf=None):
+        """add custom Fields to the object
+        
+        >>> b = api.get_building('Building with CustomFields')
+        >>> cf = device42api.CustomField(api=api)
+        >>> cf.key      = 'bldid'
+        >>> cf.value    = 23
+        >>> cf.value2   = 44
+        >>> cf.notes    = 'Building ids: 23,44'
+        >>> b.add_customField(cf)
+        {'msg': ['custom key pair values added or updated', 3, 'Building with CustomFields'], 'code': 0}
+        
+        """
+        if not isinstance(cf, CustomField): raise Device42APIObjectException(u'need CustomField instance')
+        cf._api_path = 'building'
+        cf.name      = self.name
+        rsp = cf.save()
+        if isinstance(rsp, dict) and rsp.has_key('code'):
+            if rsp['code'] == 0:
+                self.custom_fields.append(cf)
+        return rsp
     def __str__(self):
         return u'%s %s' % (self.name, self.address)
     def save(self):
         if self.api != None:
-            rsp = self.api.__post_api__('buildings/', body=self.get_json())
+            rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
             if isinstance(rsp, dict) and rsp.has_key('msg'):
                 if rsp['msg'][-2] == True:
                     self.building_id  = rsp['msg'][1]
@@ -135,15 +206,37 @@ class Room(Device42APIObject):
         self.devices        = []
         self.racks          = []
         super(Room, self).__init__(json, parent, api)
+        self._api_path      = 'rooms'
     def __str__(self):
         return u'%s %s' % (self.name)
     def save(self):
         if self.api != None:
-            rsp = self.api.__post_api__('rooms/', body=self.get_json())
+            rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
             if isinstance(rsp, dict) and rsp.has_key('msg'):
                 if rsp['msg'][-2] == True:
                     self.room_id  = rsp['msg'][1]
             return rsp
+    def add_customField(self, cf=None):
+        """add custom Fields to the object
+        
+        >>> room = api.get_room('Room with CustomFields')
+        >>> cf = device42api.CustomField(api=api)
+        >>> cf.key      = 'used_since'
+        >>> cf.value    = '2014-04-02'
+        >>> cf.type     = 'date'
+        >>> room.add_customField(cf)
+        {'msg': ['custom key pair values added or updated', 3, 'Room with CustomFields @ Building with CustomFields'], 'code': 0}
+        
+        """
+        if not isinstance(cf, CustomField): raise Device42APIObjectException(u'need CustomField instance')
+        cf._api_path = 'room'
+        cf.name     = self.name
+        cf.id        = self.room_id
+        rsp = cf.save()
+        if isinstance(rsp, dict) and rsp.has_key('code'):
+            if rsp['code'] == 0:
+                self.custom_fields.append(cf)
+        return rsp
     def load(self):
         """get entries for room from API
         
@@ -222,10 +315,12 @@ class Rack(Device42APIObject):
         self.notes          = Optional()
         self.assets         = {}
         self.devices        = {}
+        
         if json != None and json.has_key('rack'):
             super(Rack, self).__init__(json['rack'], parent, api)
         else:
             super(Rack, self).__init__(json, parent, api)
+        self._api_path      = 'racks'
         if self.assets != {}:
             assets  = {}
             for a in self.assets:
@@ -286,7 +381,7 @@ class Rack(Device42APIObject):
         return rsp
     def save(self):
         if self.api != None:
-            rsp = self.api.__post_api__('racks/', body=self.get_json())
+            rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
             if isinstance(rsp, dict) and rsp.has_key('msg'):
                 if rsp['msg'][-2] == True:
                     self.rack_id  = rsp['msg'][1]
@@ -330,11 +425,32 @@ class Rack(Device42APIObject):
                     if json[k] != None:
                         setattr(self, k, json[k])
             self._json = json
+    def add_customField(self, cf=None):
+        """add custom Fields to the object
+        
+        >>> rack = api.get_rack('Rack with CustomFields')[0]
+        >>> cf = device42api.CustomField(api=api)
+        >>> cf.key      = 'used_since'
+        >>> cf.type     = 'date'
+        >>> cf.value    = '2014-04-02'
+        >>> rack.add_customField(cf)
+        {'msg': ['custom key pair values added or updated', 3, 'Rack with CustomFields (in Room with CustomFields @ Building with CustomFields)'], 'code': 0}
+        
+        """
+        if not isinstance(cf, CustomField): raise Device42APIObjectException(u'need CustomField instance')
+        cf._api_path = 'rack'
+        cf.name      = self.name
+        cf.id        = self.rack_id
+        rsp = cf.save()
+        if isinstance(rsp, dict) and rsp.has_key('code'):
+            if rsp['code'] == 0:
+                self.custom_fields.append(cf)
+        return rsp
 
 class Asset(Device42APIObject):
     """.. _Asset:
     
-    create Rack object
+    create Asset object
     
     >>> api = device42api.Device42API(host='127.0.0.1', username='admin', password='changeme')
     >>> a = device42api.Asset(api=api)
@@ -380,9 +496,10 @@ class Asset(Device42APIObject):
             super(Asset, self).__init__(json['asset'], parent, api)
         else:
             super(Asset, self).__init__(json, parent, api)
+        self._api_path      = 'assets'
     def save(self):
         if self.api != None:
-            rsp = self.api.__post_api__('assets/', body=self.get_json())
+            rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
             if isinstance(rsp, dict) and rsp.has_key('msg'):
                 if rsp['msg'][-2] == True:
                     self.asset_id  = rsp['msg'][1]
@@ -405,6 +522,27 @@ class Asset(Device42APIObject):
                 if json[k] != None:
                     setattr(self, k, json[k])
             self._json = json
+    def add_customField(self, cf=None):
+        """add custom Fields to the object
+        
+        >>> asset = api.get_asset('Rack with CustomFields')[0]
+        >>> cf = device42api.CustomField(api=api)
+        >>> cf.key      = 'used_since'
+        >>> cf.type     = 'date'
+        >>> cf.value    = '2014-04-02'
+        >>> asset.add_customField(cf)
+        {'msg': ['custom key pair values added or updated', 15, 'Asset with CustomFields - AC'], 'code': 0}
+        
+        """
+        if not isinstance(cf, CustomField): raise Device42APIObjectException(u'need CustomField instance')
+        cf._api_path = 'asset'
+        cf.name      = self.name
+        cf.id        = self.asset_id
+        rsp = cf.save()
+        if isinstance(rsp, dict) and rsp.has_key('code'):
+            if rsp['code'] == 0:
+                self.custom_fields.append(cf)
+        return rsp
 
 class Device(Device42APIObject):
     """.. _Device:
@@ -470,9 +608,10 @@ class Device(Device42APIObject):
         else:
             super(Device, self).__init__(json, parent, api)
             self._json              = dict()
+        self._api_path              = 'device'
     def save(self):
         if self.api != None:
-            rsp = self.api.__post_api__('device/', v=None, body=self.get_json())
+            rsp = self.api.__post_api__('%s/' % self._api_path, v=None, body=self.get_json())
             #{'msg': ['device added or updated', 3, 'Test Device 2', True, True], 'code': 0}
             if isinstance(rsp, dict) and rsp.has_key('msg'):
                 if rsp['msg'][-2] == True:
@@ -494,10 +633,12 @@ class Device(Device42APIObject):
             json = self.api.__get_api__('devices/id/%s/' % self.device_id)
             for k in json.keys():
                 if k == 'ip_addresses':
+                    ipaddresses = []
                     for i in json['ip_addresses']:
                         ip = IPAM_ipaddress(json=i, parent=self, api=self.api)
                         ip.load()
-                        self.ip_addresses.append(ip)
+                        ipaddresses.append(ip)
+                    self.ip_addresses = ipaddresses
                 elif k == 'mac_addresses':
                     for m in json['mac_addresses']:
                         self.mac_addresses.append(self.api.get_macid_byAddress(m['mac']))
@@ -577,6 +718,27 @@ class Device(Device42APIObject):
         return rsp
     def __str__(self):
         return u'%s' % self.name
+    def add_customField(self, cf=None):
+        """add custom Fields to the object
+        
+        .. note: CustomFieldDevice is needed as the path in the API changes for this particular object
+        
+        >>> device = api.get_device(device_id=1)
+        >>> cf = device42api.CustomFieldDevice(api=api)
+        >>> cf.key      = 'used_since'
+        >>> cf.type     = 'date'
+        >>> cf.value    = '2014-04-02'
+        >>> device.add_customField(cf)
+        {'msg': ['custom key pair values added or updated', 1, 'Device with CustomFields'], 'code': 0}
+        
+        """
+        if not isinstance(cf, CustomFieldDevice): raise Device42APIObjectException(u'need CustomField instance')
+        cf.name      = self.name
+        rsp = cf.save()
+        if isinstance(rsp, dict) and rsp.has_key('code'):
+            if rsp['code'] == 0:
+                self.custom_fields.append(cf)
+        return rsp
 
 class Hardware(Device42APIObject):
     """.. _Hardware:
@@ -608,9 +770,10 @@ class Hardware(Device42APIObject):
         self.back_image_id  = Optional()
         self.notes          = Optional()
         super(Hardware, self).__init__(json, parent, api)
+        self._api_path      = 'hardwares'
     def save(self):
         if self.api != None:
-            rsp = self.api.__post_api__('hardwares/', body=self.get_json())
+            rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
             if isinstance(rsp, dict) and rsp.has_key('msg'):
                 if rsp['msg'][-2] == True:
                     self.hardware_id  = rsp['msg'][1]
@@ -646,6 +809,55 @@ class PDU_Model(Device42APIObject):
             pdu_port_count += p['pdu_port_count']
             pdu_port_type.append(p['pdu_port_type'])
         return u'pdu_model %s ports %s type %s' % (self.pdu_model_id, pdu_port_count, ','.join(pdu_port_type))
+
+class ServiceLevel(Device42APIObject):
+    """.. _ServiceLevel:
+    
+    only representing the ServiceLevels as object
+
+    .. note:: !!! since there's no API call to create/update these can only be retrieved !!!
+
+    
+    >>> api = device42api.Device42API(host='127.0.0.1', username='admin', password='changeme')
+    >>> sl = api.get_service_level('Production')
+    >>> print sl
+    Production(1)
+    >>> for sl in api.get_service_level():
+    ...     print sl
+    QA
+    Development
+    Production
+    
+    """
+    def __init__(self, json=None, parent=None, api=None):
+        self.name   = None
+        self.id     = None
+        super(ServiceLevel, self).__init__(json, parent, api)
+    def __str__(self):
+        return u'%s(%s)' % (self.name, self.id)
+
+class History(Device42APIObject):
+    """.. History:
+    
+    only representing the History as object
+
+    .. note:: !!! can only be retrieved !!!
+
+    
+    >>> api = device42api.Device42API(host='127.0.0.1', username='admin', password='changeme')
+    >>> for h in api.get_history():
+    ...     print h
+    2014-04-04T10:16:46.776Z Add/Change(API) admin building
+    
+    """
+    def __init__(self, json=None, parent=None, api=None):
+        self.action_time    = None
+        self.user           = None
+        self.action         = None
+        self.content_type   = None
+        super(History, self).__init__(json, parent, api)
+    def __str__(self):
+        return u'%s %s %s %s' % (self.action_time, self.action, self.user, self.content_type)
 
 class PDU(Device42APIObject):
     """.. _PDU:
@@ -691,12 +903,13 @@ class PDU(Device42APIObject):
             super(PDU, self).__init__(json['pdu'], parent, api)
         else:
             super(PDU, self).__init__(json, parent, api)
+        self._api_path      = 'pdus'
     def save(self):
         if self.api != None:
             if self.rack_id != Optional():
-                rsp = self.api.__post_api__('pdus/rack/', body=self.get_json())
+                rsp = self.api.__post_api__('%s/rack/' % self._api_path, body=self.get_json())
             else:
-                rsp = self.api.__post_api__('pdus/', body=self.get_json())
+                rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
             if isinstance(rsp, dict) and rsp.has_key('msg'):
                 if rsp['msg'][-2] == True:
                     self.pdu_id  = rsp['msg'][1]
@@ -744,9 +957,10 @@ class PatchPanel(Device42APIObject):
         self.back_switchport        = Optional()
         self.cable_type             = Optional()
         super(PatchPanel, self).__init__(json, parent, api)
+        self._api_path              = 'patch_panel_ports'
     def save(self):
         if self.api != None:
-            rsp = self.api.__post_api__('patch_panel_ports/', body=self.get_json())
+            rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
             if isinstance(rsp, dict) and rsp.has_key('msg'):
                 if rsp['msg'][-2] == True:
                     self.patch_panel_id  = rsp['msg'][1]
@@ -818,9 +1032,10 @@ class IPAM_macaddress(Device42APIObject):
         self.vlan_id 	        = Optional() # GET VLAN IDs or UI Tools > Export > VLAN
         self.device 	        = Optional()
         super(IPAM_macaddress, self).__init__(json, parent, api)
+        self._api_path          = 'macs'
     def save(self):
         if self.api != None:
-            rsp = self.api.__post_api__('macs/', body=self.get_json())
+            rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
             if isinstance(rsp, dict) and rsp.has_key('msg'):
                 if rsp['msg'][-2] == True:
                     self.mac_id  = rsp['msg'][1]
@@ -834,7 +1049,7 @@ class IPAM_macaddress(Device42APIObject):
 class IPAM_ipaddress(Device42APIObject):
     """.. _IPAM_ipaddress:
     
-    create IPAM macaddress
+    create IPAM ipaddress
     these objects are returned if you fetch devices with configured macAddresses, manual adding a mac Address to a device
     as follows ...
     
@@ -863,15 +1078,65 @@ class IPAM_ipaddress(Device42APIObject):
         self.available 	    = False # If yes - then IP is marked as available and device and mac address associations are cleared. Added in v5.7.2
         self.clear_all 	    = False # If yes - then IP is marked as available and device and mac address associations are cleared. Also notes and lable fields are cleared. Added in v5.7.2
         super(IPAM_ipaddress, self).__init__(json, parent, api)
+        self._api_path      = 'ip'
         if json != None and self.__dict__.get('ip', False):
             self.ipaddress  = self.ip
     def save(self):
         if self.api != None:
-            rsp = self.api.__post_api__('ip/', v=None, body=self.get_json())
+            rsp = self.api.__post_api__('%s/' % self._api_path, v=None, body=self.get_json())
             if isinstance(rsp, dict) and rsp.has_key('msg'):
                 if rsp['msg'][-2] == True:
                     self.ip_id  = rsp['msg'][1]
             return rsp
+    def save_dnsRecord(self, nameserver=None, ttl=86400):
+        """saves the A DNS record for the device and the IP
+        
+        .. note:: I've not added any DNS logic as the API and GUI suffer support and I'm anoyed if implementing this over and over. Since I didn't want to introduce dependencies to other python Modules there's no logic in here
+        
+        .. attention:: the DNS Zones must exist and need to be created through the GUI
+        
+        >>> d = api.get_device('TestDevice')
+        >>> # since the device doesn't carry a valid FQDN set it accordingly !
+        >>> d.name = 'testdevice.localdomain'
+        testdevice.localdomain
+        >>> i = d.ip_address[0]
+        >>> i.ipaddress
+        1.1.1.1
+        >>> i.save_dnsRecord()
+        [{'msg': ['DNS record added/updated successfully', 1, 'testdevice.localdomain'], 'code': 0},
+         {'msg': ['DNS record added/updated successfully', 2, '1.1.1.1.in-addr.arpa'], 'code': 0}]
+        
+        .. attention:: when changing the parent device in any way remember that there's no logic which removes the old entries, so you end up with multiple entries for the address
+        
+        >>> d = api.get_device('TestDevice')
+        >>> d.name = 'testdevice2.localdomain'
+        >>> i = d.ip_address[0]
+        >>> i.save_dnsRecord()
+        [{'msg': ['DNS record added/updated successfully', 3, 'testdevice2.localdomain'], 'code': 0},
+         {'msg': ['DNS record added/updated successfully', 4, '1.1.1.1.in-addr.arpa'], 'code': 0}]
+        
+        """
+        d = IPAM_DNSRecord(api=self.api)        
+        d.name          = self.parent.name
+        d.domain        = '.'.join(d.name.split('.')[1:])
+        d.type          = 'A'
+        if nameserver != None:
+            d.nameserver    = nameserver
+        d.content       = self.ipaddress
+        d.ttl           = int(ttl)
+        rsp = d.save()
+        rev = self.ipaddress.split('.')
+        rev.reverse()
+        r = IPAM_DNSRecord(api=self.api)
+        r.name          = '%s.in-addr.arpa' % '.'.join(rev)
+        r.domain        = '.'.join(r.name.split('.')[1:])
+        r.type          = 'PTR'
+        if nameserver != None:
+            r.nameserver    = nameserver
+        r.content       = self.parent.name
+        r.ttl           = int(ttl)
+        rsp2 = r.save()
+        return [rsp, rsp2]
     def get_json(self):
         if isinstance(self.ipaddress, Required):
             raise Device42APIObjectException(u'required Attribute "ipaddress" not set')
@@ -911,9 +1176,10 @@ class IPAM_subnet(Device42APIObject):
         self.customer       = Optional()
         self.notes 	    = Optional()
         super(IPAM_subnet, self).__init__(json, parent, api)
+        self._api_path      = 'subnets'
     def save(self):
         if self.api != None:
-            rsp = self.api.__post_api__('subnets/', body=self.get_json())
+            rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
             if isinstance(rsp, dict) and rsp.has_key('msg'):
                 if rsp['msg'][-2] == True:
                     self.subnet_id  = rsp['msg'][1]
@@ -946,9 +1212,10 @@ class IPAM_vlan(Device42APIObject):
         self.switches       = Optional()
         self.notes          = Optional()
         super(IPAM_vlan, self).__init__(json, parent, api)
+        self._api_path      = 'vlans'
     def save(self):
         if self.api != None:
-            rsp = self.api.__post_api__('vlans/', body=self.get_json())
+            rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
             if isinstance(rsp, dict) and rsp.has_key('msg'):
                 if rsp['msg'][-2] == True:
                     self.vlan_id  = rsp['msg'][1]
@@ -998,9 +1265,10 @@ class IPAM_switchport(Device42APIObject):
         self.notes          = Optional()
         self.switchport_id  = Optional()
         super(IPAM_switchport, self).__init__(json, parent, api)
+        self._api_path      = 'switchports'
     def save(self):
         if self.api != None:
-            rsp = self.api.__post_api__('switchports/', body=self.get_json())
+            rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
             if isinstance(rsp, dict) and rsp.has_key('msg'):
                 if rsp['msg'][-2] == True:
                     self.switchport_id  = rsp['msg'][1]
@@ -1025,9 +1293,10 @@ class IPAM_switch(Device42APIObject):
         self.switch_template_id = Required()
         self.notes          = Optional()
         super(IPAM_switch, self).__init__(json, parent, api)
+        self._api_path      = 'vlans'
     def save(self):
         if self.api != None:
-            rsp = self.api.__post_api__('vlans/', body=self.get_json())
+            rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
             if isinstance(rsp, dict) and rsp.has_key('msg'):
                 if rsp['msg'][-2] == True:
                     self.switch_template_id  = rsp['msg'][1]
@@ -1075,12 +1344,13 @@ class Customer(Device42APIObject):
         self.phone 	    = Optional() # Text field.
         self.address 	    = Optional() # Text field.
         super(Customer, self).__init__(json, parent, api)
+        self._api_path      = 'customers'
     def save(self):
         if self.api != None:
             if not isinstance(self.customer, Optional):
-                rsp = self.api.__post_api__('customers/contacts/', body=self.get_json())
+                rsp = self.api.__post_api__('%s/contacts/' % self._api_path, body=self.get_json())
             else:
-                rsp = self.api.__post_api__('customers/', body=self.get_json())
+                rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
             if isinstance(rsp, dict) and rsp.has_key('msg'):
                 if rsp['msg'][-2] == True:
                     self.customer_id  = rsp['msg'][1]
@@ -1090,6 +1360,67 @@ class Customer(Device42APIObject):
             if isinstance(getattr(self, attr), Required):
                 raise Device42APIObjectException(u'required Attribute "%s" not set' % getattr(self, attr))
         self.__get_json_validator__(('name', 'contact_info', 'notes', 'type', 'customer', 'email', 'phone', 'address'))
+        return self.json
+    def add_customField(self, cf=None):
+        if not isinstance(cf, CustomField): raise Device42APIObjectException(u'need CustomField instance')
+        cf._api_path = 'customer'
+        cf.name      = self.name
+        rsp = cf.save()
+        if isinstance(rsp, dict) and rsp.has_key('code'):
+            if rsp['code'] == 0:
+                self.custom_fields.append(cf)
+        return rsp
+
+class IPAM_DNSRecord(Device42APIObject):
+    """.. _IPAM_DNSRecord:
+    
+    create IPAM DNSRecord
+    
+    .. note:: the API and the device42 logic in the Backend don't provide sanity checking of DNS syntax/recomendations for data, in addition to the problem of validation, the DNS Zone needs to be created through the GUI
+    
+    >>> api = device42api.Device42API(host='127.0.0.1', username='admin', password='changeme')
+    >>> i = device42api.IPAM_DNSRecord(api=api)
+    >>> i.domain     = 'localdomain'
+    >>> i.type       = 'CNAME'
+    >>> i.nameserver = '127.0.0.1'
+    >>> i.name       = 'localhost'
+    >>> i.content    = '127.0.0.1'
+    >>> i.ttl        = 86400
+    >>> i.save()
+    {'msg': ['DNS record added/updated successfully', 1, 'localhost'], 'code': 0}
+    >>> i2 = device42api.IPAM_DNSRecord(api=api)
+    >>> i2.domain     = 'localdomain'
+    >>> i2.nameserver = '127.0.0.1'
+    >>> i2.name       = 'localhost'
+    >>> i2.content    = '127.0.0.2'
+    >>> i2.ttl        = 86400
+    >>> i2.type       = 'CNAME'
+    >>> i2.save()
+    {'msg': ['DNS record added/updated successfully', 2, 'localhost'], 'code': 0}
+    
+    """
+    def __init__(self, json=None, parent=None, api=None):
+        self.domain             = Required()
+        self.type 	        = Required() # SOA, NS, MX, A, AAAA, CNAME, PTR, TXT, SPF, SRV, CERT, DNSKEY, DS, KEY, NSEC, RRSIG, HINFO, LOC, NAPTR, RP, AFSDB, SSHFP
+        self.nameserver	        = Optional()
+        self.name 	        = Optional()
+        self.content 	        = Optional()
+        self.prio               = Optional()
+        self.ttl                = Optional()
+        super(IPAM_DNSRecord, self).__init__(json, parent, api)
+        self._api_path          = 'dns/records'
+    def save(self):
+        if self.api != None:
+            rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
+            if isinstance(rsp, dict) and rsp.has_key('msg'):
+                if rsp['msg'][-2] == True:
+                    self.mac_id  = rsp['msg'][1]
+            return rsp
+    def get_json(self):
+        for attr in ('domain', 'type'):
+            if isinstance(getattr(self, attr), Required):
+                raise Device42APIObjectException(u'required Attribute "%s" not set' % attr)
+        self.__get_json_validator__(('domain', 'type', 'nameserver', 'name', 'content', 'prio', 'ttl'))
         return self.json
 
 class Device42API(object):
@@ -1112,7 +1443,7 @@ class Device42API(object):
     * __put_api__(path='.../', body=dict()) # currently not used
     
     """
-    def __init__(self, host=None, port=443, username=None, password=None):
+    def __init__(self, host=None, port=443, username=None, password=None, noInit=False):
         self.host       = host
         self.port       = int(port)
         self.username   = username
@@ -1122,15 +1453,19 @@ class Device42API(object):
         self._buildings = {}
         self._racks     = {}
         self._rooms     = {}
+        self._servicelevels = {}
+        self._assets    = {}
         self._http      = httplib2.Http(disable_ssl_certificate_validation=True)
         self._auth      = base64.encodestring('%s:%s' % (self.username, self.password))
         self._headers   = {'Accept':'application/json',
                            'Authorization': 'Basic %s' % self._auth}
+        if noInit:      return
         try:
             self.get_building()
             self.get_customer()
             self.get_rack()
             self.get_room()
+            self.get_service_level()
         except Exception, e:
             print str(e)
     def __get_api__(self, path=None):
@@ -1153,11 +1488,14 @@ class Device42API(object):
         del self._headers['content-type']
         try:    return json.loads(r)
         except ValueError:  return r
-    def __put_api__(self, path=None, body=None):
+    def __put_api__(self, path=None, v='1.0', body=None):
         if path == None or body == None:    return False
         if not path.endswith('/'):  path += '/'
         self._headers['content-type'] = 'application/x-www-form-urlencoded'
-        c, r = self._http.request(u'https://%s:%s/api/%s' % (self.host, self.port, path), 'PUT', headers=self._headers, body=urlencode(body))
+        if v == '1.0':
+            c, r = self._http.request(u'https://%s:%s/api/1.0/%s' % (self.host, self.port, path), 'PUT', headers=self._headers, body=urlencode(body))
+        else:
+            c, r = self._http.request(u'https://%s:%s/api/%s' % (self.host, self.port, path), 'PUT', headers=self._headers, body=urlencode(body))
         self.__set_cookie__(c)
         del self._headers['content-type']
         try:    return json.loads(r)
@@ -1235,22 +1573,31 @@ class Device42API(object):
                 if name == None:                racks.append(r)
                 elif name == r.name:            racks.append(r)
         return racks
-    def get_assets(self):
+    def get_asset(self, name=None, reload=False):
         """return all assets from device42
         
-        >>> api.get_assets()
+        >>> api.get_asset()
         [<device42api.Asset object at 0x26a0b50>, <device42api.Asset object at 0x26a8450>]
         >>> for a in api.get_assets():
         ...     print a, a.asset_id
         ... 
         <device42api.Asset object at 0x26aaa50> 1
         <device42api.Asset object at 0x26a8590> 2
+        >>> api.get_asset('Asset with CustomFields')
+        <device42api.Asset object at 0x1c5e410>
         
         """
-        assets = []
-        for a in self.__get_api__('assets/')['assets']:
-            assets.append(Asset(json=a, parent=self, api=self))
-        return assets
+        if self._assets == {} or reload == True:
+            for a in self.__get_api__('assets/')['assets']:
+                ass = Asset(json=a, parent=self, api=self)
+                ass.load()
+                self._assets[ass.id] = ass
+        if name != None:
+            assets = []
+            for a in self._assets.values():
+                if a.name == name:  assets.append(a)
+            return assets
+        return self._assets.values()
     def get_patch_panels(self):
         """return all patch panels from device42, use get_assets and validate patch_panel_model_id field
         
@@ -1327,3 +1674,59 @@ class Device42API(object):
                 r = Room(json=c, parent=self, api=self)
                 self._rooms[r.name] = r
         return self._rooms.get(name, False)
+    def get_service_level(self, name=None, reload=False):
+        """return ServiceLevel object from API if found otherwise False
+        
+        >>> api.get_service_level('Production')
+        <device42api.ServiceLevel object at 0x1aa4310>
+        >>> print api.get_service_level('Production')
+        Production(1)
+        
+        """
+        if self._servicelevels == {} or reload == True:
+            for c in self.__get_api__('service_level/'):
+                r = ServiceLevel(json=c, parent=self, api=self)
+                self._servicelevels[r.name] = r
+        if name != None:
+            return self._servicelevels.get(name, False)
+        return self._servicelevels
+    def get_history(self):
+        """return History records from API
+        
+        >>> for h in api.get_history():
+        ...     print h
+        2014-04-04T10:16:46.776Z Add/Change(API) admin building
+        
+        """
+        for h in self.__get_api__('history/'):
+            yield History(json=h, parent=self, api=self)
+    def get_device(self, name=None, device_id=None, serial=None):
+        """return the Device from the API classified by
+        
+        * name
+        * device_id
+        * serial
+        
+        .. attention:: return by name isn't working with device names including spaces (or anything which requires quoting) as the API always responses with 404 NOT FOUND. You're seeing this error because you have DEBUG Enabled in your settings
+        
+        """
+        device    = Device(parent=self, api=self)
+        if name != None:
+            device_id = self.__get_api__('devices/name/%s' % name)['id']
+            if device_id:
+                device.device_id = device_id
+                device.load()
+                return device
+            return False
+        elif device_id != None:
+            device.device_id   = device_id
+            device.load()
+            return device
+        elif serial != None:
+            device_id = self.__get_api__('devices/serial/%s' % serial)
+            if device_id:
+                device.device_id = device_id
+                device.load()
+                return device
+            return False
+        return False

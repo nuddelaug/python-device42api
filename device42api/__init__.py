@@ -596,12 +596,13 @@ class Device(Device42APIObject):
         self.hddraid_type           = Optional()
         self.mac_addresses          = []
         self.ip_addresses           = []
-        self.devices_in_cluster     = Optional()
+        self.devices                = Optional()
         self.appcomps               = Optional()
         self.customer               = Optional()
         self.contract               = Optional()
         self.aliases                = Optional()
         self.notes                  = Optional()
+        self.uuid                   = Optional()
         if json != None:
             super(Device, self).__init__(json['device'], parent, api)
             self._json              = json
@@ -630,7 +631,7 @@ class Device(Device42APIObject):
         
         """
         if self.api != None:
-            json = self.api.__get_api__('devices/id/%s/' % self.device_id)
+            json = self.api.__get_api__('devices/id/%s/?follow=yes' % self.device_id)
             for k in json.keys():
                 if k == 'ip_addresses':
                     ipaddresses = []
@@ -655,8 +656,8 @@ class Device(Device42APIObject):
             raise Device42APIObjectException(u'required Attribute "name" not set')
         self.__get_json_validator__(('name', 'serial_no', 'asset_no', 'manufacturer', 'hardware', 'type', 'service_level', 'virtual_host', 'blade_host', 'slot_no',
                   'storage_room_id', 'storage_room', 'os', 'osver', 'memory', 'cpucount', 'cpupower', 'cpucore',
-                  'hddcount', 'hddsize', 'hddraid', 'hddraid_type', 'devices_in_cluster', 'appcomps',
-                  'customer', 'contract', 'aliases', 'notes', 'is_it_switch', 'is_it_virtual_host', 'is_it_blade_host'))
+                  'hddcount', 'hddsize', 'hddraid', 'hddraid_type', 'devices', 'appcomps',
+                  'customer', 'contract', 'aliases', 'notes', 'is_it_switch', 'is_it_virtual_host', 'is_it_blade_host', 'uuid'))
         return self.json
     def add_mac(self, macAddress=None, port_name=None):
         """.. _Device.add_mac:
@@ -1470,7 +1471,7 @@ class Device42API(object):
             print str(e)
     def __get_api__(self, path=None):
         if path == None:    return False
-        if not path.startswith('patch_panel_ports'):
+        if not path.startswith('patch_panel_ports') and not path.endswith('?follow=yes'):
             # unfortunately for this url path they API doesn't accept tailing '/'
             if not path.endswith('/'):  path += '/'
         c, r = self._http.request(u'https://%s:%s/api/1.0/%s' % (self.host, self.port, path), 'GET', headers=self._headers)
@@ -1712,7 +1713,7 @@ class Device42API(object):
         """
         device    = Device(parent=self, api=self)
         if name != None:
-            device_id = self.__get_api__('devices/name/%s' % name)['id']
+            device_id = self.__get_api__('devices/name/%s/?follow=yes' % name)['id']
             if device_id:
                 device.device_id = device_id
                 device.load()

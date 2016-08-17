@@ -8,7 +8,7 @@ except ImportError:
     from setuptools import setup, find_packages
 
 setup(name='device42api',
-      version='1.2.1',
+      version='1.2.2',
       description='Device42.com API module for object oriented API handling',
       author='Michael Lang',
       author_email='Michael.Lang@ctbto.org',

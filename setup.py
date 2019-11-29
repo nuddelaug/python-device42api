@@ -7,6 +7,8 @@ except ImportError:
     ez_setup.use_setuptools()
     from setuptools import setup, find_packages
 
+REQUIRIES = ['httplib2 >= 0.8', 'simplejson >= 1.4.6']
+
 setup(name='device42api',
       version='1.2.2',
       description='Device42.com API module for object oriented API handling',
@@ -28,5 +30,5 @@ setup(name='device42api',
         'Topic :: Text Processing',
         'Topic :: Utilities',
         ],
-      install_requires=['python-httplib2 >= 0.8', 'python-simplejson >= 1.4.6'],
+      install_requires=REQUIRIES
       )

@@ -9,15 +9,16 @@ except ImportError:
 
 REQUIRIES = ['httplib2 >= 0.8', 'simplejson >= 1.4.6']
 
-setup(name='device42api',
-      version='1.2.2',
-      description='Device42.com API module for object oriented API handling',
-      author='Michael Lang',
-      author_email='Michael.Lang@ctbto.org',
-      url='http://python-device42api.readthedocs.org/en/latest/',
-      packages=find_packages(),
-      license='GPLv2',
-      classifiers=[
+setup(
+    name='device42api',
+    version='1.2.2',
+    description='Device42.com API module for object oriented API handling',
+    author='Michael Lang',
+    author_email='Michael.Lang@ctbto.org',
+    url='http://python-device42api.readthedocs.org/en/latest/',
+    packages=find_packages(),
+    license='GPLv2',
+    classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
         'Intended Audience :: Developers',
@@ -26,9 +27,10 @@ setup(name='device42api',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 3',
         'Topic :: Documentation',
         'Topic :: Text Processing',
         'Topic :: Utilities',
         ],
-      install_requires=REQUIRIES
-      )
+    install_requires=REQUIRIES
+)

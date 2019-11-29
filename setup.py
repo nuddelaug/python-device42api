@@ -11,11 +11,16 @@ except ImportError:
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-REQUIRIES = ['httplib2 >= 0.8', 'simplejson >= 1.4.6']
+name = 'device42api'
+version = '1.2.dev3'
+install_requires = [
+    'httplib2 >= 0.8',
+    'simplejson >= 1.4.6'
+]
 
 setup(
-    name='device42api',
-    version='1.2.dev3',
+    name=name,
+    version=version,
     description='Device42.com API module for object oriented API handling',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -37,6 +42,6 @@ setup(
         'Topic :: Documentation',
         'Topic :: Text Processing',
         'Topic :: Utilities',
-        ],
-    install_requires=REQUIRIES
+    ],
+    install_requires=install_requires,
 )

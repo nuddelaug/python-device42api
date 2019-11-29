@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- 
-try:
-    from setuptools import setup, find_packages
-except ImportError:
-    import ez_setup
-    ez_setup.use_setuptools()
-    from setuptools import setup, find_packages
+
+import setuptools
+
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
 REQUIRIES = ['httplib2 >= 0.8', 'simplejson >= 1.4.6']
 
 setup(
     name='device42api',
-    version='1.2.2',
+    version='1.2.3',
     description='Device42.com API module for object oriented API handling',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     author='Michael Lang',
     author_email='Michael.Lang@ctbto.org',
     url='http://python-device42api.readthedocs.org/en/latest/',

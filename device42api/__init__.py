@@ -1459,7 +1459,7 @@ class Device42API(object):
         self._servicelevels = {}
         self._assets    = {}
         self._http      = httplib2.Http(disable_ssl_certificate_validation=True)
-        self._auth      = base64.encodestring('%s:%s' % (self.username, self.password))
+        self._auth      = base64.encodestring(('%s:%s' % (self.username, self.password)).encode())
         self._headers   = {'Accept':'application/json',
                            'Authorization': 'Basic %s' % self._auth}
         if noInit:      return

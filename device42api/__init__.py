@@ -3,7 +3,7 @@
 import httplib2 
 import base64
 import simplejson as json
-from urllib import urlencode
+from urllib.parse import urlencode
 
 class Required(object): pass
 class Optional(object): pass
@@ -1467,8 +1467,8 @@ class Device42API(object):
             self.get_rack()
             self.get_room()
             self.get_service_level()
-        except Exception, e:
-            print str(e)
+        except Exception as e:
+            print(str(e))
     def __get_api__(self, path=None):
         if path == None:    return False
         if not path.startswith('patch_panel_ports') and not path.endswith('?follow=yes'):

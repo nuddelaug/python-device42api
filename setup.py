@@ -12,10 +12,11 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 name = 'device42api'
-version = '1.2.3'
+version = '1.4.dev1'
 install_requires = [
     'httplib2 >= 0.8',
-    'simplejson >= 1.4.6'
+    'simplejson >= 1.4.6',
+    'urllib3 >= 1.25.7'
 ]
 
 setup(

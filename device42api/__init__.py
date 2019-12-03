@@ -1538,7 +1538,7 @@ class Device42API(object):
         for r in self.__get_api__('pdu_models/')['pdu_models']:
             pdum.append(PDU_Model(json=r, parent=self, api=self))
         return pdum
-    def get_rack(self, name=None, building=None, room=None):
+    def get_rack(self, name=None, building=None, room=None, reload=True):
         """return all racks from device42
         
         >>> api.get_rack('TestRack1')

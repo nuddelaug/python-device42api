@@ -42,6 +42,8 @@ class Device42APIObject(object):
         raise Device42APIObjectException(u'need to implement get_json')
     def load(self):
         raise Device42APIObjectException(u'need to implement load')
+    def load_all(self):
+        raise Device42APIObjectException(u'need to implement load_all')
     def __get_json_validator__(self, keys=[]):
         for k in keys:
             v = getattr(self, k)

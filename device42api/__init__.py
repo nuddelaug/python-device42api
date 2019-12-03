@@ -1459,9 +1459,12 @@ class Device42API(object):
         self._servicelevels = {}
         self._assets    = {}
         self._http      = httplib2.Http(disable_ssl_certificate_validation=True)
-        self._auth      = base64.encodestring(('%s:%s' % (self.username, self.password)).encode())
-        self._headers   = {'Accept':'application/json',
-                           'Authorization': 'Basic %s' % self._auth}
+        self._auth_b    = '{}:{}'.format(self.username, self.password).encode("utf-8")
+        self._auth      = base64.b64encode(self._auth_b)
+        self._headers   = {
+                'Authorization': 'Basic '+ self._auth.decode(),
+                'Content-Type' : 'application/x-www-form-urlencoded'
+            }
         if noInit:      return
         try:
             self.get_building()
@@ -1504,7 +1507,7 @@ class Device42API(object):
         try:    return json.loads(r)
         except ValueError:  return r
     def __set_cookie__(self, headers):
-        if headers.has_key('set-cookie'):
+        if 'set-cookie' in headers:
             self._headers['Cookie'] = headers['set-cookie']
     def get_macid_byAddress(self, macAddress=None, reload=False):
         """return IPAM_macaddress object from API if found otherwise False

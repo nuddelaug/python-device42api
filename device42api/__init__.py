@@ -646,7 +646,9 @@ class Device(Device42APIObject):
                     self.ip_addresses = ipaddresses
                 elif k == 'mac_addresses':
                     for m in json['mac_addresses']:
-                        self.mac_addresses.append(self.api.get_macid_byAddress(m['mac']))
+                        # it might be None
+                        if m:
+                            self.mac_addresses.append(self.api.get_macid_byAddress(m['mac']))
                 elif k == 'hw_model':
                     setattr(self, 'hardware', json[k])
                     # hack as hardware is returned as hw_model

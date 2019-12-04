@@ -172,7 +172,7 @@ class Building(Device42APIObject):
     def save(self):
         if self.api != None:
             rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
-            if isinstance(rsp, dict) and msg in rsp:
+            if isinstance(rsp, dict) and 'msg' in rsp:
                 if rsp['msg'][-2] == True:
                     self.building_id  = rsp['msg'][1]
             return rsp
@@ -212,7 +212,7 @@ class Room(Device42APIObject):
     def save(self):
         if self.api != None:
             rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
-            if isinstance(rsp, dict) and msg in rsp:
+            if isinstance(rsp, dict) and 'msg' in rsp:
                 if rsp['msg'][-2] == True:
                     self.room_id  = rsp['msg'][1]
             return rsp

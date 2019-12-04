@@ -23,8 +23,7 @@ install_requires = [
 # by virtue of the Setuptools `extras_require` value in the Python
 # dictionary below.
 dev_requires = [
-    'ipython',
-    'pytest'
+    'ipython'
 ]
 
 setup(

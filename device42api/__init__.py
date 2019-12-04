@@ -634,6 +634,8 @@ class Device(Device42APIObject):
         """
         if self.api != None:
             json = self.api.__get_api__('devices/id/%s/?follow=yes' % self.device_id)
+            # fix size changed during iteration with hack hw_model
+            json['hardware'] = ''
             for k in json.keys():
                 if k == 'ip_addresses':
                     ipaddresses = []

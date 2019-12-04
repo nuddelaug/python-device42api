@@ -56,3 +56,4 @@ docs/build/
 # builds 
 dist/
 *.swp
+venv/

@@ -19,6 +19,14 @@ install_requires = [
     'urllib3 >= 1.25.7'
 ]
 
+# List of dependencies installed via `pip install -e ".[dev]"`
+# by virtue of the Setuptools `extras_require` value in the Python
+# dictionary below.
+dev_requires = [
+    'ipython',
+    'pytest'
+]
+
 setup(
     name=name,
     version=version,
@@ -45,4 +53,7 @@ setup(
         'Topic :: Utilities',
     ],
     install_requires=install_requires,
+    extras_require={
+        'dev': dev_requires,
+    },
 )

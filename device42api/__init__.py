@@ -3,7 +3,7 @@
 import httplib2 
 import base64
 import simplejson as json
-from urllib import urlencode
+from urllib.parse import urlencode
 
 class Required(object): pass
 class Optional(object): pass
@@ -46,12 +46,12 @@ class Device42APIObject(object):
         for k in keys:
             v = getattr(self, k)
             if isinstance(v, Optional):  continue
-            if self._json.has_key(k) and self._json[k] != v:
+            if k in self._json and self._json[k] != v:
                 if not isinstance(v, int):
                     self.json[k] = str(v)
                 else:
                     self.json[k] = v
-            elif not self._json.has_key(k):
+            elif not k in self._json:
                 if not isinstance(v, int):
                     self.json[k] = str(v)
                 else:
@@ -96,7 +96,7 @@ class CustomField(Device42APIObject):
     def save(self):
         if self.api != None:
             rsp = self.api.__put_api__('custom_fields/%s/' % self._api_path, body=self.get_json())
-            if isinstance(rsp, dict) and rsp.has_key('code'):
+            if isinstance(rsp, dict) and 'code' in rsp:
                 if rsp['code'] == 0:
                     self._id  = rsp['msg'][1]
             return rsp
@@ -119,7 +119,7 @@ class CustomFieldDevice(CustomField):
     def save(self):
         if self.api != None:
             rsp = self.api.__put_api__(self._api_path, body=self.get_json())
-            if isinstance(rsp, dict) and rsp.has_key('code'):
+            if isinstance(rsp, dict) and 'code' in rsp:
                 if rsp['code'] == 0:
                     self._id  = rsp['msg'][1]
             return rsp
@@ -163,7 +163,7 @@ class Building(Device42APIObject):
         cf._api_path = 'building'
         cf.name      = self.name
         rsp = cf.save()
-        if isinstance(rsp, dict) and rsp.has_key('code'):
+        if isinstance(rsp, dict) and 'code' in rsp:
             if rsp['code'] == 0:
                 self.custom_fields.append(cf)
         return rsp
@@ -172,7 +172,7 @@ class Building(Device42APIObject):
     def save(self):
         if self.api != None:
             rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
-            if isinstance(rsp, dict) and rsp.has_key('msg'):
+            if isinstance(rsp, dict) and 'msg' in rsp:
                 if rsp['msg'][-2] == True:
                     self.building_id  = rsp['msg'][1]
             return rsp
@@ -212,7 +212,7 @@ class Room(Device42APIObject):
     def save(self):
         if self.api != None:
             rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
-            if isinstance(rsp, dict) and rsp.has_key('msg'):
+            if isinstance(rsp, dict) and 'msg' in rsp:
                 if rsp['msg'][-2] == True:
                     self.room_id  = rsp['msg'][1]
             return rsp
@@ -233,7 +233,7 @@ class Room(Device42APIObject):
         cf.name     = self.name
         cf.id        = self.room_id
         rsp = cf.save()
-        if isinstance(rsp, dict) and rsp.has_key('code'):
+        if isinstance(rsp, dict) and 'code' in rsp:
             if rsp['code'] == 0:
                 self.custom_fields.append(cf)
         return rsp
@@ -316,7 +316,7 @@ class Rack(Device42APIObject):
         self.assets         = {}
         self.devices        = {}
         
-        if json != None and json.has_key('rack'):
+        if json != None and 'rack' in json:
             super(Rack, self).__init__(json['rack'], parent, api)
         else:
             super(Rack, self).__init__(json, parent, api)
@@ -375,14 +375,14 @@ class Rack(Device42APIObject):
         """
         body = dict(device=device.name, rack_id=self.rack_id, start_at=start_at)
         rsp  = self.api.__post_api__('device/rack', body=body)
-        if isinstance(rsp, dict) and rsp.has_key('msg'):
+        if isinstance(rsp, dict) and 'msg' in rsp:
             if rsp['msg'][-2] == True:
                 self.load()
         return rsp
     def save(self):
         if self.api != None:
             rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
-            if isinstance(rsp, dict) and rsp.has_key('msg'):
+            if isinstance(rsp, dict) and 'msg' in rsp:
                 if rsp['msg'][-2] == True:
                     self.rack_id  = rsp['msg'][1]
             return rsp
@@ -442,7 +442,7 @@ class Rack(Device42APIObject):
         cf.name      = self.name
         cf.id        = self.rack_id
         rsp = cf.save()
-        if isinstance(rsp, dict) and rsp.has_key('code'):
+        if isinstance(rsp, dict) and 'code' in rsp:
             if rsp['code'] == 0:
                 self.custom_fields.append(cf)
         return rsp
@@ -492,7 +492,7 @@ class Asset(Device42APIObject):
         self.numbering_start_from   = Optional()
         self.asset_contracts= []
         self.asset_purchases= []
-        if json != None and json.has_key('asset'):
+        if json != None and 'asset' in json:
             super(Asset, self).__init__(json['asset'], parent, api)
         else:
             super(Asset, self).__init__(json, parent, api)
@@ -500,7 +500,7 @@ class Asset(Device42APIObject):
     def save(self):
         if self.api != None:
             rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
-            if isinstance(rsp, dict) and rsp.has_key('msg'):
+            if isinstance(rsp, dict) and 'msg' in rsp:
                 if rsp['msg'][-2] == True:
                     self.asset_id  = rsp['msg'][1]
             return rsp
@@ -539,7 +539,7 @@ class Asset(Device42APIObject):
         cf.name      = self.name
         cf.id        = self.asset_id
         rsp = cf.save()
-        if isinstance(rsp, dict) and rsp.has_key('code'):
+        if isinstance(rsp, dict) and 'code' in rsp:
             if rsp['code'] == 0:
                 self.custom_fields.append(cf)
         return rsp
@@ -614,7 +614,7 @@ class Device(Device42APIObject):
         if self.api != None:
             rsp = self.api.__post_api__('%s/' % self._api_path, v=None, body=self.get_json())
             #{'msg': ['device added or updated', 3, 'Test Device 2', True, True], 'code': 0}
-            if isinstance(rsp, dict) and rsp.has_key('msg'):
+            if isinstance(rsp, dict) and 'msg' in rsp:
                 if rsp['msg'][-2] == True:
                     self.device_id  = rsp['msg'][1]
             return rsp
@@ -632,6 +632,8 @@ class Device(Device42APIObject):
         """
         if self.api != None:
             json = self.api.__get_api__('devices/id/%s/?follow=yes' % self.device_id)
+            # fix size changed during iteration with hack hw_model
+            json['hardware'] = ''
             for k in json.keys():
                 if k == 'ip_addresses':
                     ipaddresses = []
@@ -642,7 +644,9 @@ class Device(Device42APIObject):
                     self.ip_addresses = ipaddresses
                 elif k == 'mac_addresses':
                     for m in json['mac_addresses']:
-                        self.mac_addresses.append(self.api.get_macid_byAddress(m['mac']))
+                        # it might be None
+                        if m:
+                            self.mac_addresses.append(self.api.get_macid_byAddress(m['mac']))
                 elif k == 'hw_model':
                     setattr(self, 'hardware', json[k])
                     # hack as hardware is returned as hw_model
@@ -736,7 +740,7 @@ class Device(Device42APIObject):
         if not isinstance(cf, CustomFieldDevice): raise Device42APIObjectException(u'need CustomField instance')
         cf.name      = self.name
         rsp = cf.save()
-        if isinstance(rsp, dict) and rsp.has_key('code'):
+        if isinstance(rsp, dict) and 'code' in rsp:
             if rsp['code'] == 0:
                 self.custom_fields.append(cf)
         return rsp
@@ -775,7 +779,7 @@ class Hardware(Device42APIObject):
     def save(self):
         if self.api != None:
             rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
-            if isinstance(rsp, dict) and rsp.has_key('msg'):
+            if isinstance(rsp, dict) and 'msg' in rsp:
                 if rsp['msg'][-2] == True:
                     self.hardware_id  = rsp['msg'][1]
             return rsp
@@ -900,7 +904,7 @@ class PDU(Device42APIObject):
         self.where          = Optional() # values: left, right, above, below or mounted.
         self.start_at       = Optional()
         self.orientation    = Optional()
-        if json != None and json.has_key('pdu'):
+        if json != None and 'pdu' in json:
             super(PDU, self).__init__(json['pdu'], parent, api)
         else:
             super(PDU, self).__init__(json, parent, api)
@@ -911,7 +915,7 @@ class PDU(Device42APIObject):
                 rsp = self.api.__post_api__('%s/rack/' % self._api_path, body=self.get_json())
             else:
                 rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
-            if isinstance(rsp, dict) and rsp.has_key('msg'):
+            if isinstance(rsp, dict) and 'msg' in rsp:
                 if rsp['msg'][-2] == True:
                     self.pdu_id  = rsp['msg'][1]
             return rsp
@@ -962,7 +966,7 @@ class PatchPanel(Device42APIObject):
     def save(self):
         if self.api != None:
             rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
-            if isinstance(rsp, dict) and rsp.has_key('msg'):
+            if isinstance(rsp, dict) and 'msg' in rsp:
                 if rsp['msg'][-2] == True:
                     self.patch_panel_id  = rsp['msg'][1]
             return rsp
@@ -1037,7 +1041,7 @@ class IPAM_macaddress(Device42APIObject):
     def save(self):
         if self.api != None:
             rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
-            if isinstance(rsp, dict) and rsp.has_key('msg'):
+            if isinstance(rsp, dict) and 'msg' in rsp:
                 if rsp['msg'][-2] == True:
                     self.mac_id  = rsp['msg'][1]
             return rsp
@@ -1085,7 +1089,7 @@ class IPAM_ipaddress(Device42APIObject):
     def save(self):
         if self.api != None:
             rsp = self.api.__post_api__('%s/' % self._api_path, v=None, body=self.get_json())
-            if isinstance(rsp, dict) and rsp.has_key('msg'):
+            if isinstance(rsp, dict) and 'msg' in rsp:
                 if rsp['msg'][-2] == True:
                     self.ip_id  = rsp['msg'][1]
             return rsp
@@ -1181,7 +1185,7 @@ class IPAM_subnet(Device42APIObject):
     def save(self):
         if self.api != None:
             rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
-            if isinstance(rsp, dict) and rsp.has_key('msg'):
+            if isinstance(rsp, dict) and 'msg' in rsp:
                 if rsp['msg'][-2] == True:
                     self.subnet_id  = rsp['msg'][1]
             return rsp
@@ -1217,7 +1221,7 @@ class IPAM_vlan(Device42APIObject):
     def save(self):
         if self.api != None:
             rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
-            if isinstance(rsp, dict) and rsp.has_key('msg'):
+            if isinstance(rsp, dict) and 'msg' in rsp:
                 if rsp['msg'][-2] == True:
                     self.vlan_id  = rsp['msg'][1]
             return rsp
@@ -1270,7 +1274,7 @@ class IPAM_switchport(Device42APIObject):
     def save(self):
         if self.api != None:
             rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
-            if isinstance(rsp, dict) and rsp.has_key('msg'):
+            if isinstance(rsp, dict) and 'msg' in rsp:
                 if rsp['msg'][-2] == True:
                     self.switchport_id  = rsp['msg'][1]
             return rsp
@@ -1298,7 +1302,7 @@ class IPAM_switch(Device42APIObject):
     def save(self):
         if self.api != None:
             rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
-            if isinstance(rsp, dict) and rsp.has_key('msg'):
+            if isinstance(rsp, dict) and 'msg' in rsp:
                 if rsp['msg'][-2] == True:
                     self.switch_template_id  = rsp['msg'][1]
             return rsp
@@ -1352,7 +1356,7 @@ class Customer(Device42APIObject):
                 rsp = self.api.__post_api__('%s/contacts/' % self._api_path, body=self.get_json())
             else:
                 rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
-            if isinstance(rsp, dict) and rsp.has_key('msg'):
+            if isinstance(rsp, dict) and 'msg' in rsp:
                 if rsp['msg'][-2] == True:
                     self.customer_id  = rsp['msg'][1]
             return rsp
@@ -1367,7 +1371,7 @@ class Customer(Device42APIObject):
         cf._api_path = 'customer'
         cf.name      = self.name
         rsp = cf.save()
-        if isinstance(rsp, dict) and rsp.has_key('code'):
+        if isinstance(rsp, dict) and 'code' in rsp:
             if rsp['code'] == 0:
                 self.custom_fields.append(cf)
         return rsp
@@ -1413,7 +1417,7 @@ class IPAM_DNSRecord(Device42APIObject):
     def save(self):
         if self.api != None:
             rsp = self.api.__post_api__('%s/' % self._api_path, body=self.get_json())
-            if isinstance(rsp, dict) and rsp.has_key('msg'):
+            if isinstance(rsp, dict) and 'msg' in rsp:
                 if rsp['msg'][-2] == True:
                     self.mac_id  = rsp['msg'][1]
             return rsp
@@ -1457,9 +1461,12 @@ class Device42API(object):
         self._servicelevels = {}
         self._assets    = {}
         self._http      = httplib2.Http(disable_ssl_certificate_validation=True)
-        self._auth      = base64.encodestring('%s:%s' % (self.username, self.password))
-        self._headers   = {'Accept':'application/json',
-                           'Authorization': 'Basic %s' % self._auth}
+        self._auth_b    = '{}:{}'.format(self.username, self.password).encode("utf-8")
+        self._auth      = base64.b64encode(self._auth_b)
+        self._headers   = {
+                'Authorization': 'Basic '+ self._auth.decode(),
+                'Content-Type' : 'application/x-www-form-urlencoded'
+            }
         if noInit:      return
         try:
             self.get_building()
@@ -1467,8 +1474,8 @@ class Device42API(object):
             self.get_rack()
             self.get_room()
             self.get_service_level()
-        except Exception, e:
-            print str(e)
+        except Exception as e:
+            print(str(e))
     def __get_api__(self, path=None):
         if path == None:    return False
         if not path.startswith('patch_panel_ports') and not path.endswith('?follow=yes'):
@@ -1502,7 +1509,7 @@ class Device42API(object):
         try:    return json.loads(r)
         except ValueError:  return r
     def __set_cookie__(self, headers):
-        if headers.has_key('set-cookie'):
+        if 'set-cookie' in headers:
             self._headers['Cookie'] = headers['set-cookie']
     def get_macid_byAddress(self, macAddress=None, reload=False):
         """return IPAM_macaddress object from API if found otherwise False
@@ -1533,7 +1540,7 @@ class Device42API(object):
         for r in self.__get_api__('pdu_models/')['pdu_models']:
             pdum.append(PDU_Model(json=r, parent=self, api=self))
         return pdum
-    def get_rack(self, name=None, building=None, room=None):
+    def get_rack(self, name=None, building=None, room=None, reload=True):
         """return all racks from device42
         
         >>> api.get_rack('TestRack1')
